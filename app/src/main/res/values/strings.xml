@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Bluetooth Messages</string>
+
+    <string name="request_permission">Allow Bluetooth and Location permissions to proceed.</string>
+    <string name="request_permission_rationale">Bluetooth and location services are needed to scan and connect to devices with this app. You can allow these from your device settings.</string>
+
 </resources>

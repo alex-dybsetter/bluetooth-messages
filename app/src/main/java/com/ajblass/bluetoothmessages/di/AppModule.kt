@@ -3,8 +3,8 @@ package com.ajblass.bluetoothmessages.di
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.Context
-import com.ajblass.bluetoothmessages.feature.bluetooth.BluetoothService
-import com.ajblass.bluetoothmessages.feature.bluetooth.BluetoothServiceImpl
+import com.ajblass.bluetoothmessages.feature.bluetooth.MyBluetoothManager
+import com.ajblass.bluetoothmessages.feature.bluetooth.MyBluetoothManagerImpl
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -16,10 +16,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class AppModule {
-
-	@Binds
-	@Singleton
-	abstract fun bindsBluetoothService(bluetoothService: BluetoothServiceImpl): BluetoothService
 
 	companion object {
 

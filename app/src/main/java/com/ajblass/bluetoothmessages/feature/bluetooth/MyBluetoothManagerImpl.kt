@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothSocket
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -31,6 +32,8 @@ import dagger.hilt.android.qualifiers.ActivityContext
 import dagger.hilt.android.scopes.ActivityScoped
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.io.IOException
+import java.util.UUID
 import javax.inject.Inject
 
 /**
@@ -45,6 +48,7 @@ class MyBluetoothManagerImpl @Inject constructor(
 
 	private val activity = context as ComponentActivity
 	private val registry: ActivityResultRegistry = activity.activityResultRegistry
+	private var socket: BluetoothSocket? = null
 
 	private val deviceList: MutableList<BluetoothDevice> = mutableListOf()
 
@@ -135,10 +139,11 @@ class MyBluetoothManagerImpl @Inject constructor(
 	override fun onDestroy(owner: LifecycleOwner) {
 		super.onDestroy(owner)
 		activity.unregisterReceiver(deviceFoundReceiver)
+		socket?.close()
 	}
 
 	@SuppressLint("MissingPermission")
-	override suspend fun discoverDevices(): EventResult<List<BluetoothDevice>, MyBluetoothManager.BluetoothServiceError> {
+	override suspend fun discoverDevices(): EventResult<List<BluetoothDevice>, MyBluetoothManager.BluetoothError> {
 		Log.d(TAG, "discoverDevices()")
 
 		if (isPermissionGranted()) {
@@ -148,19 +153,63 @@ class MyBluetoothManagerImpl @Inject constructor(
 			return cancelDiscovery()
 		}
 
-		return EventResult.Error(MyBluetoothManager.BluetoothServiceError.PermissionNotGranted)
+		return EventResult.Error(MyBluetoothManager.BluetoothError.PermissionNotGranted)
 	}
 
 	@SuppressLint("MissingPermission")
-	override suspend fun cancelDiscovery(): EventResult<List<BluetoothDevice>, MyBluetoothManager.BluetoothServiceError> {
+	override suspend fun cancelDiscovery(): EventResult<List<BluetoothDevice>, MyBluetoothManager.BluetoothError> {
 		Log.d(TAG, "cancelDiscovery()")
 
 		if (isPermissionGranted()) {
 			bluetoothAdapter?.cancelDiscovery()
-			return EventResult.Success(deviceList.distinctBy { it.address })
+			return EventResult.Success(
+				deviceList
+					.distinctBy { it.address }
+					.filter {
+						!it.name.isNullOrBlank() && it.name == MyBluetoothManager.MY_DEVICE_NAME
+					}
+			)
 		}
 
-		return EventResult.Error(MyBluetoothManager.BluetoothServiceError.PermissionNotGranted)
+		return EventResult.Error(MyBluetoothManager.BluetoothError.PermissionNotGranted)
+	}
+
+	@SuppressLint("MissingPermission")
+	override suspend fun connect(
+		device: BluetoothDevice
+	): EventResult<Boolean, MyBluetoothManager.BluetoothError> {
+		Log.d(TAG, "connect()")
+
+		if (isPermissionGranted()) {
+			cancelDiscovery()
+
+			socket =
+				device.createRfcommSocketToServiceRecord(
+					UUID.fromString(MyBluetoothManager.MY_UUID)
+				)
+
+			socket?.let { s ->
+				return try {
+					s.connect()
+					EventResult.Success(true)
+				} catch (e: IOException) {
+					Log.e(TAG, "Error: ${e.message}")
+					EventResult.Error(MyBluetoothManager.BluetoothError.UnableToPair)
+				}
+			}
+		}
+
+		return EventResult.Error(MyBluetoothManager.BluetoothError.UnableToPair)
+	}
+
+	override suspend fun disconnect(): EventResult<Boolean, MyBluetoothManager.BluetoothError> {
+		return try {
+			socket?.close()
+			EventResult.Success(true)
+		} catch (e: IOException) {
+			Log.e(TAG, "Error: ${e.message}")
+			EventResult.Error(MyBluetoothManager.BluetoothError.UnableToPair)
+		}
 	}
 
 	private fun registerHandler(owner: LifecycleOwner): ActivityResultLauncher<Intent> {

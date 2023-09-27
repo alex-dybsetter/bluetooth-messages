@@ -1,10 +1,12 @@
 package com.ajblass.bluetoothmessages.feature.home
 
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.le.ScanResult
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ajblass.bluetoothmessages.data.EventResult
 import com.ajblass.bluetoothmessages.feature.bluetooth.MyBluetoothManager
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -41,8 +43,19 @@ class HomeViewModel(
 	}
 
 	fun connect(device: BluetoothDevice) {
+		_uiState.value = HomeScreenState.Pairing(device)
+		viewModelScope.launch {
+			val result = bluetoothManager.connect(device)
+			_uiState.value =
+				if (result is EventResult.Success) HomeScreenState.PairingSuccess(device)
+				else HomeScreenState.Error
+		}
 	}
 
 	fun disconnect() {
+		_uiState.value = HomeScreenState.ScanSuccess()
+		viewModelScope.launch {
+			bluetoothManager.disconnect()
+		}
 	}
 }

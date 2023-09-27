@@ -11,10 +11,10 @@ interface MyBluetoothManager {
 		internal const val TAG = "MyBluetoothManager"
 
 		internal const val BLUETOOTH_KEY = "EnableBluetooth"
+		internal const val MY_DEVICE_NAME = "Bluetooth 5.1 Keyboard"
+		internal const val MY_UUID = "00001124-0000-1000-8000-00805f9b34fb"
 
 		const val SCAN_DURATION: Long = 5000
-		const val CONNECT_TIMEOUT_DURATION: Long = 30_000
-		const val DISCONNECT_TIMEOUT_DURATION: Long = 5000
 
 		val requiredPermissions =
 			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) listOf(
@@ -28,10 +28,13 @@ interface MyBluetoothManager {
 			)
 	}
 
-	suspend fun discoverDevices(): EventResult<List<BluetoothDevice>, BluetoothServiceError>
-	suspend fun cancelDiscovery(): EventResult<List<BluetoothDevice>, BluetoothServiceError>
+	suspend fun discoverDevices(): EventResult<List<BluetoothDevice>, BluetoothError>
+	suspend fun cancelDiscovery(): EventResult<List<BluetoothDevice>, BluetoothError>
+	suspend fun connect(device: BluetoothDevice): EventResult<Boolean, BluetoothError>
+	suspend fun disconnect(): EventResult<Boolean, BluetoothError>
 
-	sealed class BluetoothServiceError {
-		data object PermissionNotGranted : BluetoothServiceError()
+	sealed class BluetoothError {
+		data object PermissionNotGranted : BluetoothError()
+		data object UnableToPair : BluetoothError()
 	}
 }

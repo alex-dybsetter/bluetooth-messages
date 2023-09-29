@@ -28,6 +28,7 @@ interface MyBluetoothManager {
 			)
 	}
 
+	fun connectToKeyboard(): EventResult<List<BluetoothDevice>, BluetoothError>
 	suspend fun discoverDevices(): EventResult<List<BluetoothDevice>, BluetoothError>
 	suspend fun cancelDiscovery(): EventResult<List<BluetoothDevice>, BluetoothError>
 	suspend fun connect(device: BluetoothDevice): EventResult<Boolean, BluetoothError>

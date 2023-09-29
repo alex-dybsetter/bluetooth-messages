@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ajblass.bluetoothmessages.data.EventResult
 import com.ajblass.bluetoothmessages.feature.bluetooth.MyBluetoothManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,9 +20,15 @@ class HomeViewModel(
 		MutableStateFlow(HomeScreenState.ScanSuccess(emptyList()))
 	val uiState: StateFlow<HomeScreenState> = _uiState
 
+	fun connectToKeyboard() {
+		viewModelScope.launch(Dispatchers.IO) {
+			bluetoothManager.connectToKeyboard()
+		}
+	}
+
 	fun scanDevices() {
 		_uiState.value = HomeScreenState.Scanning
-		viewModelScope.launch {
+		viewModelScope.launch(Dispatchers.IO) {
 			val result = bluetoothManager.discoverDevices()
 			_uiState.value =
 				if (result is EventResult.Success) HomeScreenState.ScanSuccess(result.data)
@@ -30,7 +37,7 @@ class HomeViewModel(
 	}
 
 	fun stopScan() {
-		viewModelScope.launch {
+		viewModelScope.launch(Dispatchers.IO) {
 			val result = bluetoothManager.cancelDiscovery()
 			_uiState.value =
 				if (result is EventResult.Success) HomeScreenState.ScanSuccess(result.data)
@@ -44,7 +51,7 @@ class HomeViewModel(
 
 	fun connect(device: BluetoothDevice) {
 		_uiState.value = HomeScreenState.Pairing(device)
-		viewModelScope.launch {
+		viewModelScope.launch(Dispatchers.IO) {
 			val result = bluetoothManager.connect(device)
 			_uiState.value =
 				if (result is EventResult.Success) HomeScreenState.PairingSuccess(device)
@@ -54,7 +61,7 @@ class HomeViewModel(
 
 	fun disconnect() {
 		_uiState.value = HomeScreenState.ScanSuccess()
-		viewModelScope.launch {
+		viewModelScope.launch(Dispatchers.IO) {
 			bluetoothManager.disconnect()
 		}
 	}

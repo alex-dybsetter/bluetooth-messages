@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothClass
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.content.BroadcastReceiver
@@ -140,6 +141,39 @@ class MyBluetoothManagerImpl @Inject constructor(
 		super.onDestroy(owner)
 		activity.unregisterReceiver(deviceFoundReceiver)
 		socket?.close()
+	}
+
+	@SuppressLint("MissingPermission")
+	override fun connectToKeyboard(): EventResult<List<BluetoothDevice>, MyBluetoothManager.BluetoothError> {
+		Log.d(TAG, "connectToKeyboard()")
+
+		if (!isPermissionGranted()) {
+			return EventResult.Error(MyBluetoothManager.BluetoothError.PermissionNotGranted)
+		}
+
+		val pairedDevices: Set<BluetoothDevice>? = bluetoothAdapter?.bondedDevices
+		pairedDevices?.forEach { device ->
+			if (device.bluetoothClass.majorDeviceClass == BluetoothClass.Device.Major.PERIPHERAL) {
+
+				val socket: BluetoothSocket? = try {
+					device.createRfcommSocketToServiceRecord(
+						UUID.fromString(MyBluetoothManager.MY_UUID)
+					)
+				} catch (e: IOException) {
+					Log.e(TAG, "Error: ${e.message}")
+					null
+				}
+
+				try {
+					socket?.connect()
+					EventResult.Success(true)
+				} catch (e: IOException) {
+					Log.e(TAG, "Error: ${e.message}")
+				}
+			}
+		}
+
+		return EventResult.Error(MyBluetoothManager.BluetoothError.UnableToPair)
 	}
 
 	@SuppressLint("MissingPermission")
